@@ -275,7 +275,7 @@ export class Dapp extends React.Component {
 
       const tx = await this._token.deposit({
         value: amount,
-        gasLimit: ethers.utils.parseUnits('5000000000', 'wei')
+        gasLimit: 300000,
       });
       console.log("Transaction sent:", tx.hash);
 

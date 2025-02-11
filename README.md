@@ -1,39 +1,37 @@
-# Hardhat Boilerplate
+# 免费的以太坊水龙头
 
-This repository contains a sample project that you can use as the starting point
-for your Ethereum project. It's also a great fit for learning the basics of
-smart contract development.
+官方提供的水龙头领取时，需要主网账户有一定的以太坊币才可以，这对一些刚刚入门的开发者有点不友好。相比 `Solana` 或 `SUI` 这些链的水龙头不需要用户持有任何代币就可以完全免费领取来说，以太坊的水龙头用户体验稍微差一些。
 
-This project is intended to be used with the
-[Hardhat Beginners Tutorial](https://hardhat.org/tutorial), but you should be
-able to follow it by yourself by reading the README and exploring its
-`contracts`, `tests`, `scripts` and `frontend` directories.
 
-## Quick start
+本项目使用 hardhat 框架开发, 成功部署合约后的链上地址保存在文件 `frontend/src/contracts/contract-address.json`。
 
-The first things you need to do are cloning this repository and installing its
-dependencies:
+## 功能简介
 
-```sh
-git clone https://github.com/NomicFoundation/hardhat-boilerplate.git
-cd hardhat-boilerplate
-npm install
-```
+部署合约时的钱包进行登录（管理员身份），进行以下管理：
+- 当前水龙头账户充值
+- 用户最大提现金额
+- 合约状态管理，如暂停、恢复
+- 设置最大提现金额
+- 合约销毁及退币
 
-Once installed, let's run Hardhat's testing network:
+
+对于普通用户直接访问的水龙头，需要先登录，免费领取测试代币即可。
+
+## 本地部署
+
+本地运行测试网络:
 
 ```sh
 npx hardhat node
 ```
 
-Then, on a new terminal, go to the repository's root folder and run this to
-deploy your contract:
+打开中车个终端部署合约:
 
 ```sh
 npx hardhat run scripts/deploy.js --network localhost
 ```
 
-Finally, we can run the frontend with:
+启动前端服务，进行合约配置，如水龙头充值等:
 
 ```sh
 cd frontend
@@ -41,50 +39,4 @@ npm install
 npm start
 ```
 
-Open [http://localhost:3000/](http://localhost:3000/) to see your Dapp. You will
-need to have [Coinbase Wallet](https://www.coinbase.com/wallet) or [Metamask](https://metamask.io) installed and listening to
-`localhost 8545`.
-
-## User Guide
-
-You can find detailed instructions on using this repository and many tips in [its documentation](https://hardhat.org/tutorial).
-
-- [Writing and compiling contracts](https://hardhat.org/tutorial/writing-and-compiling-contracts/)
-- [Setting up the environment](https://hardhat.org/tutorial/setting-up-the-environment/)
-- [Testing Contracts](https://hardhat.org/tutorial/testing-contracts/)
-- [Setting up your wallet](https://hardhat.org/tutorial/boilerplate-project#how-to-use-it)
-- [Hardhat's full documentation](https://hardhat.org/docs/)
-
-For a complete introduction to Hardhat, refer to [this guide](https://hardhat.org/getting-started/#overview).
-
-## What's Included?
-
-This repository uses our recommended hardhat setup, by using our [`@nomicfoundation/hardhat-toolbox`](https://hardhat.org/hardhat-runner/plugins/nomicfoundation-hardhat-toolbox). When you use this plugin, you'll be able to:
-
-- Deploy and interact with your contracts using [ethers.js](https://docs.ethers.io/v5/) and the [`hardhat-ethers`](https://hardhat.org/hardhat-runner/plugins/nomiclabs-hardhat-ethers) plugin.
-- Test your contracts with [Mocha](https://mochajs.org/), [Chai](https://chaijs.com/) and our own [Hardhat Chai Matchers](https://hardhat.org/hardhat-chai-matchers) plugin.
-- Interact with Hardhat Network with our [Hardhat Network Helpers](https://hardhat.org/hardhat-network-helpers).
-- Verify the source code of your contracts with the [hardhat-etherscan](https://hardhat.org/hardhat-runner/plugins/nomiclabs-hardhat-etherscan) plugin.
-- Get metrics on the gas used by your contracts with the [hardhat-gas-reporter](https://github.com/cgewecke/hardhat-gas-reporter) plugin.
-- Measure your tests coverage with [solidity-coverage](https://github.com/sc-forks/solidity-coverage).
-
-This project also includes [a sample frontend/Dapp](./frontend), which uses [Create React App](https://github.com/facebook/create-react-app).
-
-## Troubleshooting
-
-- `Invalid nonce` errors: if you are seeing this error on the `npx hardhat node`
-  console, try resetting your Metamask account. This will reset the account's
-  transaction history and also the nonce. Open Metamask, click on your account
-  followed by `Settings > Advanced > Clear activity tab data`.
-
-## Setting up your editor
-
-[Hardhat for Visual Studio Code](https://hardhat.org/hardhat-vscode) is the official Hardhat extension that adds advanced support for Solidity to VSCode. If you use Visual Studio Code, give it a try!
-
-## Getting help and updates
-
-If you need help with this project, or with Hardhat in general, please read [this guide](https://hardhat.org/hardhat-runner/docs/guides/getting-help) to learn where and how to get it.
-
-For the latest news about Hardhat, [follow us on Twitter](https://twitter.com/HardhatHQ), and don't forget to star [our GitHub repository](https://github.com/NomicFoundation/hardhat)!
-
-**Happy _building_!**
+打开 [http://localhost:3000/](http://localhost:3000/) 。

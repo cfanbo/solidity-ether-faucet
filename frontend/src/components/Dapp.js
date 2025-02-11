@@ -13,11 +13,13 @@ import contractAddress from "../contracts/contract-address.json";
 // logic. They just render HTML.
 import { NoWalletDetected } from "./NoWalletDetected";
 import { ConnectWallet } from "./ConnectWallet";
-import { Loading } from "./Loading";
 import { Transfer } from "./Transfer";
 import { TransactionErrorMessage } from "./TransactionErrorMessage";
 import { WaitingForTransactionMessage } from "./WaitingForTransactionMessage";
 import { NoTokensMessage } from "./NoTokensMessage";
+import { Deposit } from "./Deposit";
+import { Withdraw } from "./Withdraw";
+
 
 // This is the default id used by the Hardhat Network
 const HARDHAT_NETWORK_ID = '31337';
@@ -46,13 +48,18 @@ export class Dapp extends React.Component {
       tokenData: undefined,
       // The user's address and balance
       selectedAddress: undefined,
-      balance: undefined,
+      isOwner: false,
+      wallet: {
+        balance: 0,
+      },
+      balance: 0,
       // The ID about transactions being sent, and any possible error with them
       txBeingSent: undefined,
       transactionError: undefined,
       networkError: undefined,
     };
 
+    this._logger = undefined;
     this.state = this.initialState;
   }
 
@@ -80,11 +87,23 @@ export class Dapp extends React.Component {
       );
     }
 
+    // 监听链（网络）变化
+    window.ethereum.on('chainChanged', (chainId) => {
+      console.log('Chain changed to:', chainId);
+    });
+
+    // 监听连接断开
+    window.ethereum.on('disconnect', (code, reason) => {
+      console.log('Disconnected:', code, reason);
+    });
+
     // If the token data or the user's balance hasn't loaded yet, we show
     // a loading component.
-    if (!this.state.tokenData || !this.state.balance) {
-      return <Loading />;
-    }
+    // If the token data or the user's balance hasn't loaded yet, we show
+    // a loading component.
+    // if (!this.state.tokenData || !this.state.balance) {
+    //   return <Loading />;
+    // }
 
     // If everything is loaded, we render the application.
     return (
@@ -92,15 +111,30 @@ export class Dapp extends React.Component {
         <div className="row">
           <div className="col-12">
             <h1>
-              {this.state.tokenData.name} ({this.state.tokenData.symbol})
+              用户中心
             </h1>
             <p>
-              Welcome <b>{this.state.selectedAddress}</b>, you have{" "}
+              Welcome <b>{this.state.selectedAddress}</b>, you have{" "} 
               <b>
-                {this.state.balance.toString()} {this.state.tokenData.symbol}
+                {ethers.utils.formatEther(this.state.balance)}
               </b>
-              .
+              {" "} ETH
             </p>
+            <p>Wallet Amount {this.state.wallet.balance.toString()} WEI</p>
+          </div>
+        </div>
+
+        <div className="row">
+          <div className="col-12">
+            {this.state.isOwner && (
+<Deposit 
+transferTokens={this._transferContractTokens} 
+selfDestroy={this._selfDestroy}
+pause={this._pause}
+unpause={this._unpause}
+updateAmount={this._updateAmount}
+ />
+            )}
           </div>
         </div>
 
@@ -108,56 +142,158 @@ export class Dapp extends React.Component {
 
         <div className="row">
           <div className="col-12">
-            {/* 
-              Sending a transaction isn't an immediate action. You have to wait
-              for it to be mined.
-              If we are waiting for one, we show a message here.
-            */}
-            {this.state.txBeingSent && (
-              <WaitingForTransactionMessage txHash={this.state.txBeingSent} />
-            )}
-
-            {/* 
-              Sending a transaction can fail in multiple ways. 
-              If that happened, we show a message here.
-            */}
-            {this.state.transactionError && (
-              <TransactionErrorMessage
-                message={this._getRpcErrorMessage(this.state.transactionError)}
-                dismiss={() => this._dismissTransactionError()}
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="row">
-          <div className="col-12">
-            {/*
-              If the user has no tokens, we don't show the Transfer form
-            */}
-            {this.state.balance.eq(0) && (
-              <NoTokensMessage selectedAddress={this.state.selectedAddress} />
-            )}
-
-            {/*
-              This component displays a form that the user can use to send a 
-              transaction and transfer some tokens.
-              The component doesn't have logic, it just calls the transferTokens
-              callback.
-            */}
-            {this.state.balance.gt(0) && (
-              <Transfer
-                transferTokens={(to, amount) =>
-                  this._transferTokens(to, amount)
-                }
-                tokenSymbol={this.state.tokenData.symbol}
-              />
-            )}
+<Withdraw withdraw={this._withdrawTokens} defaultAddress={this.state.selectedAddress} />
           </div>
         </div>
       </div>
     );
   }
+
+  _withdrawTokens = async (address) => {
+    if (!ethers.utils.isAddress(address)) {
+      alert("无效的以太坊地址");
+      return;
+    }
+  
+    try {
+      console.log("contractAddress: ", this._token.address);
+      console.log("Provider:", this._token.provider);
+
+      const network = await this._token.provider.getNetwork();
+      console.log("Connected network:", network.name);
+      console.log("Connected network ID:", network.chainId);
+      
+      // 检查合约连接状态
+      const signer = await this._token.signer;
+      console.log("Signer address:", await signer.getAddress());
+
+      // 检查合约余额
+      const contractBalance = await this._token.provider.getBalance(this._token.address);
+      console.log("Contract balance:", ethers.utils.formatEther(contractBalance));
+      
+      // 调用合约方法
+      const tx = await this._token.sendMe();
+      
+      console.log("Transaction sent:", tx.hash);
+      
+      // 监听事件
+      this._token.on("SendMe", (to, amount, event) => {
+        console.log("SendMe event received:", {
+          to,
+          amount: ethers.utils.formatEther(amount),
+          transactionHash: event.transactionHash
+        });
+      });
+  
+      // 等待交易确认
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
+      
+      // 检查交易是否成功
+      if (receipt.status === 0) {
+        throw new Error("Transaction failed");
+      }
+  
+      return receipt;
+  
+    } catch (error) {
+      // 更详细的错误处理
+      if (error.code === 'UNPREDICTABLE_GAS_LIMIT') {
+        console.error("Gas estimation failed - contract may be reverting");
+      }
+      if (error.message.includes("execution reverted")) {
+        const reason = error.data?.message || error.message;
+        console.error("Transaction reverted:", reason);
+        alert(`交易被拒绝: ${reason}`);
+      } else {
+        console.error("Transaction failed:", error);
+        alert("交易失败，请查看控制台了解详情");
+      }
+      throw error;
+    }
+  };
+
+
+   _pause = async () => {
+    const tx = await this._token.pause();
+    console.log("tx: ", tx);
+
+    tx.wait().then((receipt) => {
+      console.log("Transaction confirmed:", receipt);
+    });
+  }
+
+  _unpause = async () => {
+    const tx = await this._token.unpause();
+    console.log("tx: ", tx);
+
+    tx.wait().then((receipt) => {
+      console.log("Transaction confirmed:", receipt);
+    });
+  }
+
+  _selfDestroy = async () => {
+    try {
+      const tx = await this._token.destroy();
+      console.log("tx: ", tx);
+  
+      tx.wait().then((receipt) => {
+        console.log("Transaction confirmed:", receipt);
+      });
+    } catch (error) {
+      if (error.code === "UNPREDICTABLE_GAS_LIMIT") {
+        alert("Gas limit could not be estimated.");
+      } else if (error.code === "ACTION_REJECTED") {
+        alert("User rejected the transaction.");
+      } else {
+        alert("Error:" + error);
+      }
+
+      return;
+    }
+  };
+
+  _transferContractTokens = async (amount, amountUnit) => {
+    if (amount <= 0) {
+      alert("Amount must be greater than zero.");
+      return;
+    }
+    try {
+      await this._updateBalance();
+
+      if (amountUnit === 'Ether') {
+        amount = ethers.utils.parseEther(amount.toString());
+      } else if (amountUnit === 'Wei') {
+        amount = ethers.utils.parseUnits(amount.toString(), 'wei');
+      } else if (amountUnit === 'Gwei') {
+        amount = ethers.utils.parseUnits(amount.toString(), 'gwei');
+      } else {
+        alert("Invalid amount unit.", amountUnit);
+        return;
+      }
+      console.log("amount: ", amount);
+
+      const tx = await this._token.deposit({
+       value: amount,
+      //  gasLimit: ethers.utils.parseUnits('5000000000', 'wei') 
+      });
+      console.log("Transaction sent:", tx.hash);
+
+      // 等待交易完成并获取确认信息
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
+
+      await this._updateWalletBalance();
+    } catch (error) {
+      // We check the error code to see if this error was produced because the
+      // user rejected a tx. If that's the case, we do nothing.
+      if (error.code === ERROR_CODE_TX_REJECTED_BY_USER) {
+        return;
+      }
+      console.error(error);
+    }
+
+  };
 
   componentWillUnmount() {
     // We poll the user's balance, so we have to stop doing that when Dapp
@@ -183,16 +319,28 @@ export class Dapp extends React.Component {
     // We reinitialize it whenever the user changes their account.
     window.ethereum.on("accountsChanged", ([newAddress]) => {
       this._stopPollingData();
-      // `accountsChanged` event can be triggered with an undefined newAddress.
-      // This happens when the user removes the Dapp from the "Connected
-      // list of sites allowed access to your addresses" (Metamask > Settings > Connections)
-      // To avoid errors, we reset the dapp state 
+
       if (newAddress === undefined) {
         return this._resetState();
       }
       
       this._initialize(newAddress);
     });
+
+    console.log('_connectWalleted');
+  }
+
+  _updateAmount = async (amount) => {
+    if (amount <= 0) {
+      alert("Amount must be greater than zero.");
+      return;
+    }
+    console.log('_updateAmount', amount);
+    const tx = await this._token.updateAmount(amount)
+    tx.wait().then((receipt) => {
+      console.log("Transaction confirmed:", receipt);
+    });
+
   }
 
   _initialize(userAddress) {
@@ -209,11 +357,14 @@ export class Dapp extends React.Component {
     // Fetching the token data and the user's balance are specific to this
     // sample project, but you can reuse the same initialization pattern.
     this._initializeEthers();
-    this._getTokenData();
+    // this._getTokenData();
     this._startPollingData();
   }
 
   async _initializeEthers() {
+    ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.DEBUG);
+    this._logger = new ethers.utils.Logger();
+
     // We first initialize ethers by creating a provider using window.ethereum
     this._provider = new ethers.providers.Web3Provider(window.ethereum);
 
@@ -224,6 +375,15 @@ export class Dapp extends React.Component {
       TokenArtifact.abi,
       this._provider.getSigner(0)
     );
+
+    this._logger.debug(this._provider.getSigner(0));
+    this._token.on("Deposit", (from, amount, event) => {
+      this._logger.info(`Deposit event: from ${from}, amount ${amount}`);
+    });
+
+    this._token.on("SendMe", (to, amount, event) => {
+      this._logger.info(`withdraw event: from ${to}, amount ${amount}`);
+    });
   }
 
   // The next two methods are needed to start and stop polling data. While
@@ -238,6 +398,8 @@ export class Dapp extends React.Component {
 
     // We run it once immediately so we don't have to wait for it
     this._updateBalance();
+
+    this._updateWalletBalance();
   }
 
   _stopPollingData() {
@@ -245,78 +407,15 @@ export class Dapp extends React.Component {
     this._pollDataInterval = undefined;
   }
 
-  // The next two methods just read from the contract and store the results
-  // in the component state.
-  async _getTokenData() {
-    const name = await this._token.name();
-    const symbol = await this._token.symbol();
-
-    this.setState({ tokenData: { name, symbol } });
+  async _updateWalletBalance() {
+    const balance = await this._token.getContractBalance();
+    const isOwner = await this._token.isOwner();
+    this.setState({ isOwner, wallet: { balance } });
   }
 
   async _updateBalance() {
-    const balance = await this._token.balanceOf(this.state.selectedAddress);
+    const balance = await this._token.getMeBalance();
     this.setState({ balance });
-  }
-
-  // This method sends an ethereum transaction to transfer tokens.
-  // While this action is specific to this application, it illustrates how to
-  // send a transaction.
-  async _transferTokens(to, amount) {
-    // Sending a transaction is a complex operation:
-    //   - The user can reject it
-    //   - It can fail before reaching the ethereum network (i.e. if the user
-    //     doesn't have ETH for paying for the tx's gas)
-    //   - It has to be mined, so it isn't immediately confirmed.
-    //     Note that some testing networks, like Hardhat Network, do mine
-    //     transactions immediately, but your dapp should be prepared for
-    //     other networks.
-    //   - It can fail once mined.
-    //
-    // This method handles all of those things, so keep reading to learn how to
-    // do it.
-
-    try {
-      // If a transaction fails, we save that error in the component's state.
-      // We only save one such error, so before sending a second transaction, we
-      // clear it.
-      this._dismissTransactionError();
-
-      // We send the transaction, and save its hash in the Dapp's state. This
-      // way we can indicate that we are waiting for it to be mined.
-      const tx = await this._token.transfer(to, amount);
-      this.setState({ txBeingSent: tx.hash });
-
-      // We use .wait() to wait for the transaction to be mined. This method
-      // returns the transaction's receipt.
-      const receipt = await tx.wait();
-
-      // The receipt, contains a status flag, which is 0 to indicate an error.
-      if (receipt.status === 0) {
-        // We can't know the exact error that made the transaction fail when it
-        // was mined, so we throw this generic one.
-        throw new Error("Transaction failed");
-      }
-
-      // If we got here, the transaction was successful, so you may want to
-      // update your state. Here, we update the user's balance.
-      await this._updateBalance();
-    } catch (error) {
-      // We check the error code to see if this error was produced because the
-      // user rejected a tx. If that's the case, we do nothing.
-      if (error.code === ERROR_CODE_TX_REJECTED_BY_USER) {
-        return;
-      }
-
-      // Other errors are logged and stored in the Dapp's state. This is used to
-      // show them to the user, and for debugging.
-      console.error(error);
-      this.setState({ transactionError: error });
-    } finally {
-      // If we leave the try/catch, we aren't sending a tx anymore, so we clear
-      // this part of the state.
-      this.setState({ txBeingSent: undefined });
-    }
   }
 
   // This method just clears part of the state.
@@ -358,5 +457,17 @@ export class Dapp extends React.Component {
     if (window.ethereum.networkVersion !== HARDHAT_NETWORK_ID) {
       this._switchChain();
     }
+  }
+
+   // 错误处理
+   _handleError(error) {
+    if (error.code === 'UNPREDICTABLE_GAS_LIMIT') {
+      return new Error("Gas 估算失败 - 合约可能会回滚");
+    }
+    if (error.message.includes("execution reverted")) {
+      const reason = error.data?.message || error.message;
+      return new Error(`交易被拒绝: ${reason}`);
+    }
+    return error;
   }
 }

@@ -8,7 +8,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 contract EtherFaucet is Ownable, Pausable {
 
-    uint256 amount = 0.001 ether;
+    uint256 amount = 0.01 ether;
     mapping(address => uint256) sendTimes;
 
     constructor(address initialOwner)

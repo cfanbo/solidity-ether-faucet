@@ -1,12 +1,12 @@
 import React from "react";
 
-export function Withdraw({withdraw, defaultAddress}) {
-    const dsubmit = async () => {
-        const value = document.getElementById("receiveAddress").value;
+export function Withdraw({ withdraw, defaultAddress }) {
+  const dsubmit = async () => {
+    const value = document.getElementById("receiveAddress").value;
 
-        withdraw(value);
-        // document.getElementById("depositAmount-btn").disabled = true;
-    }
+    withdraw(value);
+    // document.getElementById("depositAmount-btn").disabled = true;
+  }
 
   return (
     <div className="container mt-3">
@@ -25,11 +25,11 @@ export function Withdraw({withdraw, defaultAddress}) {
       </div>
       <div className="row mt-5">
         <div className="col-12">
-          
+
           <div className="alert alert-primary" role="alert">
-        当您提出请求时，可享受 0.001 Sepolia ETH。
-         </div>
-      </div>
+            当您提出请求时，可享受 0.01 Sepolia ETH。
+          </div>
+        </div>
       </div>
     </div>
   );

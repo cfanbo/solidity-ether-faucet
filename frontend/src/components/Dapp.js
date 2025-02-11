@@ -79,8 +79,8 @@ export class Dapp extends React.Component {
     // clicks a button. This callback just calls the _connectWallet method.
     if (!this.state.selectedAddress) {
       return (
-        <ConnectWallet 
-          connectWallet={() => this._connectWallet()} 
+        <ConnectWallet
+          connectWallet={() => this._connectWallet()}
           networkError={this.state.networkError}
           dismiss={() => this._dismissNetworkError()}
         />
@@ -114,7 +114,7 @@ export class Dapp extends React.Component {
               用户中心
             </h1>
             <p>
-              Welcome <b>{this.state.selectedAddress}</b>, you have{" "} 
+              Welcome <b>{this.state.selectedAddress}</b>, you have{" "}
               <b>
                 {ethers.utils.formatEther(this.state.balance)}
               </b>
@@ -127,13 +127,13 @@ export class Dapp extends React.Component {
         <div className="row">
           <div className="col-12">
             {this.state.isOwner && (
-<Deposit 
-transferTokens={this._transferContractTokens} 
-selfDestroy={this._selfDestroy}
-pause={this._pause}
-unpause={this._unpause}
-updateAmount={this._updateAmount}
- />
+              <Deposit
+                transferTokens={this._transferContractTokens}
+                selfDestroy={this._selfDestroy}
+                pause={this._pause}
+                unpause={this._unpause}
+                updateAmount={this._updateAmount}
+              />
             )}
           </div>
         </div>
@@ -142,7 +142,7 @@ updateAmount={this._updateAmount}
 
         <div className="row">
           <div className="col-12">
-<Withdraw withdraw={this._withdrawTokens} defaultAddress={this.state.selectedAddress} />
+            <Withdraw withdraw={this._withdrawTokens} defaultAddress={this.state.selectedAddress} />
           </div>
         </div>
       </div>
@@ -154,7 +154,7 @@ updateAmount={this._updateAmount}
       alert("无效的以太坊地址");
       return;
     }
-  
+
     try {
       console.log("contractAddress: ", this._token.address);
       console.log("Provider:", this._token.provider);
@@ -162,7 +162,7 @@ updateAmount={this._updateAmount}
       const network = await this._token.provider.getNetwork();
       console.log("Connected network:", network.name);
       console.log("Connected network ID:", network.chainId);
-      
+
       // 检查合约连接状态
       const signer = await this._token.signer;
       console.log("Signer address:", await signer.getAddress());
@@ -170,12 +170,12 @@ updateAmount={this._updateAmount}
       // 检查合约余额
       const contractBalance = await this._token.provider.getBalance(this._token.address);
       console.log("Contract balance:", ethers.utils.formatEther(contractBalance));
-      
+
       // 调用合约方法
       const tx = await this._token.sendMe();
-      
+
       console.log("Transaction sent:", tx.hash);
-      
+
       // 监听事件
       this._token.on("SendMe", (to, amount, event) => {
         console.log("SendMe event received:", {
@@ -184,18 +184,18 @@ updateAmount={this._updateAmount}
           transactionHash: event.transactionHash
         });
       });
-  
+
       // 等待交易确认
       const receipt = await tx.wait();
       console.log("Transaction confirmed:", receipt);
-      
+
       // 检查交易是否成功
       if (receipt.status === 0) {
         throw new Error("Transaction failed");
       }
-  
+
       return receipt;
-  
+
     } catch (error) {
       // 更详细的错误处理
       if (error.code === 'UNPREDICTABLE_GAS_LIMIT') {
@@ -214,7 +214,7 @@ updateAmount={this._updateAmount}
   };
 
 
-   _pause = async () => {
+  _pause = async () => {
     const tx = await this._token.pause();
     console.log("tx: ", tx);
 
@@ -236,7 +236,7 @@ updateAmount={this._updateAmount}
     try {
       const tx = await this._token.destroy();
       console.log("tx: ", tx);
-  
+
       tx.wait().then((receipt) => {
         console.log("Transaction confirmed:", receipt);
       });
@@ -274,8 +274,8 @@ updateAmount={this._updateAmount}
       console.log("amount: ", amount);
 
       const tx = await this._token.deposit({
-       value: amount,
-      //  gasLimit: ethers.utils.parseUnits('5000000000', 'wei') 
+        value: amount,
+        // gasLimit: ethers.utils.parseUnits('5000000000', 'wei')
       });
       console.log("Transaction sent:", tx.hash);
 
@@ -323,7 +323,7 @@ updateAmount={this._updateAmount}
       if (newAddress === undefined) {
         return this._resetState();
       }
-      
+
       this._initialize(newAddress);
     });
 
@@ -459,8 +459,8 @@ updateAmount={this._updateAmount}
     }
   }
 
-   // 错误处理
-   _handleError(error) {
+  // 错误处理
+  _handleError(error) {
     if (error.code === 'UNPREDICTABLE_GAS_LIMIT') {
       return new Error("Gas 估算失败 - 合约可能会回滚");
     }

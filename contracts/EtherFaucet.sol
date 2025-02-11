@@ -25,7 +25,7 @@ contract EtherFaucet is Ownable, Pausable {
     event SendMe(address indexed to, uint256 amount);
     function sendMe() external whenNotPaused {
         require(address(this).balance > amount, "Not enough balance");
-        require(sendTimes[msg.sender] + 1 hours < block.timestamp, "Too soon");
+        require(sendTimes[msg.sender] + 1 weeks < block.timestamp, "Too soon");
 
         sendTimes[msg.sender] = block.timestamp;
         payable(msg.sender).transfer(amount);

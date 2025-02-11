@@ -19,20 +19,26 @@
 
 ## 本地部署
 
-本地运行测试网络:
+1. 本地运行测试网络
 
 ```sh
 npx hardhat node
 ```
 
-打开中车个终端部署合约:
+2. 打开一个新终端部署合约
 
 ```sh
 npx hardhat run scripts/deploy.js --network localhost
 ```
 
-启动前端服务，进行合约配置，如水龙头充值等:
+3. 修改网络ID
+编辑文件 `frontend/src/components/Dapp.js` ，修改常量 `HARDHAT_NETWORK_ID` 为 `31337` 即本地 hardhat 开发网络。
+```
+const HARDHAT_NETWORK_ID = '31337';
+```
+注意 `11155111` 为 sepolia 测试网络ID
 
+4. 启动前端服务
 ```sh
 cd frontend
 npm install
